@@ -10,6 +10,8 @@ tags: [LLM, Arabic, Fine-Tuning, Evaluation, NLP, SFT]
 excerpt: "I wanted to check whether teaching an LLM culture by translating English instruction data actually works, versus starting from authoritative local knowledge and building culturally grounded data from scratch. I ran a same-model, same-method A/B test on Saudi Arabic to find out."
 ---
 
+![Curriculum-grounded Arabic data outperforms translated data: 87.5% vs 55.4% pass rate (+32.1 pp gap)]({{ '/assets/images/cucu/overview.png' | prepend: site.baseurl }})
+
 ## The question
 
 A common shortcut for teaching a language model about a culture is to take an existing English instruction dataset and translate it. It's cheap, it's fast, and it's what most non-English fine-tuning projects actually do.
