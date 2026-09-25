@@ -3,6 +3,7 @@
 plugins:
   - jekyll-archives # Sorry, not GitHub pages friendly!
   - jekyll-sitemap
+  - jekyll-paginate
   - jekyll-paginate-v2
 
 exclude:
@@ -30,6 +31,8 @@ inter_post_navigation: false
 highlightjs_theme: "monokai-sublime"
 
 # Pagination Settings
+paginate: 5
+paginate_path: "/page:num/"
 # https://github.com/sverrirs/jekyll-paginate-v2/blob/master/README-GENERATOR.md#site-configuration
 pagination:
   enabled: true

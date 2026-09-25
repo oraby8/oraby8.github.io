@@ -10,8 +10,14 @@ pagination:
   <p>Welcome to my technical blog. I specialize in Large Language Models (fine-tuning, RLHF/DPO, LoRA), Arabic NLP & Speech (TTS, acoustic modeling), and production autonomous AI agents. Here I share engineering deep dives, benchmarks, and production lessons. Read more <a href="{{ '/about/' | prepend: site.baseurl }}">about my background &amp; experience &rarr;</a></p>
 </div>
 
+{% if paginator.posts and paginator.posts.size > 0 %}
+  {% assign post_list = paginator.posts %}
+{% else %}
+  {% assign post_list = site.posts %}
+{% endif %}
+
 <div class="posts-feed">
-  {% for post in paginator.posts %}
+  {% for post in post_list %}
   <div class="blog-list-item">
     <h2 class="post-item-title">
       <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
