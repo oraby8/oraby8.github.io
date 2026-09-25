@@ -198,12 +198,15 @@
       margin: 1.5rem auto;
 
       &.profile {
-        width: 125px;
-        height: 125px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin: 1rem 0 1.5rem;
-        border: 2px solid var(--border-color);
+        width: 75px !important;
+        height: 75px !important;
+        max-width: 75px !important;
+        max-height: 75px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        margin: 0.5rem 0 1.25rem !important;
+        border: 2px solid var(--border-color) !important;
+        display: block !important;
       }
     }
   }

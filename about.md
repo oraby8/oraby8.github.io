@@ -5,7 +5,7 @@ permalink: /about/
 main_nav: true
 ---
 
-![Ahmed Samir Oraby]({{ site.baseurl }}/assets/avatar.png "Ahmed Samir Oraby"){:.profile}
+<img src="{{ site.baseurl }}/assets/avatar.png" alt="Ahmed Samir Oraby" class="profile" width="75" height="75" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; margin: 0.5rem 0 1.25rem; border: 2px solid var(--border-color); display: block;" />
 
 I am a **Senior NLP & Machine Learning Engineer** with over 8 years of hands-on experience building, fine-tuning, and deploying production AI systems. My work focuses on **Large Language Models (LLMs)**, **Arabic Text-to-Speech (TTS)**, **autonomous AI agents**, and **scalable RAG pipelines**.
 
