@@ -27,6 +27,7 @@ avatar: "/assets/avatar.png"
 
 # Build settings
 markdown: kramdown
+future: true
 inter_post_navigation: false
 highlightjs_theme: "monokai-sublime"
 

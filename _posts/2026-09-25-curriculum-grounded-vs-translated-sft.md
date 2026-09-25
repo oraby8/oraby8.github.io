@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Does Culture Need to Come From the Curriculum? Testing a Claim About Arabic LLM Data"
-date: 2026-09-25T12:00:00+02:00
+date: 2026-09-25T08:00:00+00:00
 author: Ahmed Samir Oraby
 categories:
   - llm
