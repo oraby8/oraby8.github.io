@@ -3,86 +3,51 @@ layout: default
 pagination: 
   enabled: true
 ---
-<div class="home">
+{% include header.html %}
 
-<div class="site-header-container {% if site.cover %}has-cover{% endif %}" {% if site.cover %}style="background-image: url({{ site.cover | prepend: site.baseurl }});"{% endif %}>
-  <div class="scrim {% if site.cover %}has-cover{% endif %}">
-    <header class="site-header">
-      <h1 class="title">{{ site.title }}</h1>
-      {% if site.subtitle %}<p class="subtitle">{{ site.subtitle }}</p>{% endif %}
-    </header>
-  </div>
+<div class="bio-intro">
+  <p>Hi, I'm Ahmed 👋</p>
+  <p>Welcome to my technical blog. I specialize in Large Language Models (fine-tuning, RLHF/DPO, LoRA), Arabic NLP & Speech (TTS, acoustic modeling), and production autonomous AI agents. Here I share engineering deep dives, benchmarks, and production lessons. Read more <a href="{{ '/about/' | prepend: site.baseurl }}">about my background &amp; experience &rarr;</a></p>
 </div>
 
-<div class="wrapper">
-<ul class="post-list">
+<div class="posts-feed">
   {% for post in paginator.posts %}
-  <li>
-    <h2>
-      <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+  <div class="blog-list-item">
+    <h2 class="post-item-title">
+      <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
     </h2>
-    <section class="post-excerpt" itemprop="description">
-      <p>{{ post.content | strip_html | truncatewords: 50 }}</p>
-    </section>
-    <section class="post-meta">
-      <div class="post-date">{{ post.date | date: "%B %-d, %Y" }}</div>
-      <div class="post-categories">
-      {% if post.categories.size > 0 %}in {% for cat in post.categories %}
-        {% if site.jekyll-archives %}
-        <a href="{{ site.baseurl }}/category/{{ cat }}">{{ cat | capitalize }}</a>{% if forloop.last == false %}, {% endif %}
-        {% else %}
-        <a href="{{ site.baseurl }}/posts/#{{ cat }}">{{ cat | capitalize }}</a>{% if forloop.last == false %}, {% endif %}
-        {% endif %}
-      {% endfor %}{% endif %}
-      </div>
-    </section>
-  </li>
-  {% if forloop.last == false %}
-  <hr>
-  {% endif %}
+    <div class="post-item-meta">
+      <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time>
+      {% if post.categories.size > 0 %}
+        <span class="meta-separator">&middot;</span>
+        <span class="meta-category">{{ post.categories | join: ", " | upcase }}</span>
+      {% endif %}
+    </div>
+    <p class="post-item-excerpt">
+      {{ post.content | strip_html | truncatewords: 35 }}
+    </p>
+  </div>
   {% endfor %}
-</ul>
+</div>
 
+{% if paginator.total_pages > 1 %}
 <nav class="pagination" role="navigation">
-	<p>
-    {% if paginator.previous_page %}
-			{% if paginator.page == 2 %}
-			<a class="newer-posts" href="{{ site.baseurl }}{{ paginator.previous_page_path }}">
-        <span class="fa-stack fa-lg">
-          <i class="fa fa-square fa-stack-2x"></i>
-          <i class="fa fa-angle-double-left fa-stack-1x fa-inverse"></i>
-        </span>
-      </a>
-			{% else %}
-			<a class="newer-posts" href="{{ site.baseurl }}{{ paginator.next_page_path }}">
-				<span class="fa-stack fa-lg">
-					<i class="fa fa-square fa-stack-2x"></i>
-					<i class="fa fa-angle-double-left fa-stack-1x fa-inverse"></i>
-				</span>
-			</a>
-			{% endif %}
-		{% else %}
-		<span class="fa-stack fa-lg">
-      <i class="fa fa-square fa-stack-2x"></i>
-      <i class="fa fa-angle-double-left fa-stack-1x fa-inverse"></i>
-    </span>
-		{% endif %}
-		<span class="page-number">Page {{ paginator.page }} of {{ paginator.total_pages }}</span>
-		{% if paginator.next_page %}
-		<a class="newer-posts" href="{{ site.baseurl }}{{ paginator.next_page_path }}">
-      <span class="fa-stack fa-lg">
-        <i class="fa fa-square fa-stack-2x"></i>
-        <i class="fa fa-angle-double-right fa-stack-1x fa-inverse"></i>
-      </span>
-    </a>
-		{% else %}
-		<span class="fa-stack fa-lg">
-      <i class="fa fa-square fa-stack-2x"></i>
-      <i class="fa fa-angle-double-right fa-stack-1x fa-inverse"></i>
-    </span>
-		{% endif %}
-	</p>
-</nav>
+  {% if paginator.previous_page %}
+    {% if paginator.page == 2 %}
+      <a class="newer-posts" href="{{ site.baseurl }}/">&larr; Newer Posts</a>
+    {% else %}
+      <a class="newer-posts" href="{{ site.baseurl }}{{ paginator.previous_page_path }}">&larr; Newer Posts</a>
+    {% endif %}
+  {% else %}
+    <span class="disabled" style="opacity: 0.4;">&larr; Newer Posts</span>
+  {% endif %}
 
-</div>
-</div>
+  <span class="page-number">Page {{ paginator.page }} of {{ paginator.total_pages }}</span>
+
+  {% if paginator.next_page %}
+    <a class="older-posts" href="{{ site.baseurl }}{{ paginator.next_page_path }}">Older Posts &rarr;</a>
+  {% else %}
+    <span class="disabled" style="opacity: 0.4;">Older Posts &rarr;</span>
+  {% endif %}
+</nav>
+{% endif %}

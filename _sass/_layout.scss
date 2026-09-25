@@ -196,6 +196,15 @@
     img {
       border-radius: 6px;
       margin: 1.5rem auto;
+
+      &.profile {
+        width: 125px;
+        height: 125px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 1rem 0 1.5rem;
+        border: 2px solid var(--border-color);
+      }
     }
   }
 }
