@@ -34,7 +34,7 @@ def test_files():
     posts_dir = os.path.join(root, '_posts')
     if os.path.exists(posts_dir):
         for post in os.listdir(posts_dir):
-            if post.endswith('.md'):
+            if post.endswith(('.md', '.html')):
                 files_to_check.append(os.path.join(posts_dir, post))
 
     for fpath in files_to_check:
