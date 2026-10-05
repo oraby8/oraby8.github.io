@@ -29,23 +29,42 @@ Llama, Qwen, and Gemma use gated (GLU) MLP blocks. `gate_proj` and `up_proj` exp
 
 ![Diagram of a GLU MLP block with a hook on the input to down_proj, which has one value per intermediate neuron]({{ '/assets/images/concept-pruning/mlp_hook.svg' | prepend: site.baseurl }})
 
-The input to `down_proj` (call it X<sub>d</sub>) has exactly one value per intermediate neuron, which makes it the natural place to measure importance. A forward-pre-hook there can either record the activation or replace it with a different tensor.
+The input to `down_proj` (call it Xd) has exactly one value per intermediate neuron, which makes it the natural place to measure importance. A forward-pre-hook there can either record the activation or replace it with a different tensor.
 
 ### Concepts as contrastive pairs
 
-A concept is a set of clean and corrupted prompt pairs plus a target token. The clean prompt makes the target correct. The corrupted prompt changes only the detail the concept depends on. Both must tokenize to the same length, because the attribution step swaps activations between them position by position.
+A concept is a set of **clean / corrupted prompt pairs** plus a target token. The clean prompt makes the target correct, and the corrupted prompt changes only the detail the concept depends on. Both prompts must tokenize to the same length, because the attribution step swaps activations between them position by position.
 
-| Concept | Clean prompt → target | Corrupted prompt |
-|---|---|---|
-| **Indirect object (IOI)** | John and Mary went to the park. John gave a book to → ` Mary` | … Mary gave a book to |
-| **Subject-verb agreement (SVA)** | The keys in the cabinet → ` are` | The key in the cabinet |
-| **Factual recall** | The capital of France is → ` Paris` | The capital of Japan is |
 
-Training pairs and held-out pairs come from disjoint pools of names, places, nouns, and countries, so held-out accuracy never reuses anything the scoring step saw.
+| Concept | Clean prompt → target                                        | Corrupted prompt        |
+| ------- | ------------------------------------------------------------ | ----------------------- |
+| IOI     | John and Mary went to the park. John gave a book to → `Mary` | … Mary gave a book to   |
+| SVA     | The keys in the cabinet → `are`                              | The key in the cabinet  |
+| Factual | The capital of France is → `Paris`                           | The capital of Japan is |
 
-### Attribution: Integrated Gradients on X<sub>d</sub>
 
-For each pair, the model runs once on the corrupted prompt and once on the clean one, and the hook records X<sub>d</sub> at every layer. Then it runs four more forward and backward passes on the corrupted prompt. In each pass, every layer's X<sub>d</sub> is replaced by a point on the straight line from the corrupted activation to the clean one. The loss is the cross-entropy of the clean target token.
+Training and held-out pairs use disjoint pools of names, places, nouns and countries, so held-out accuracy is never measured on anything the attribution step saw.
+
+**More examples by use case.** The pattern is the same in every row. Change the one detail the capability depends on, keep everything else fixed, and the right answer changes. Pick the capability your pruned model must keep, then write pairs around it.
+
+
+| Use case          | Capability protected                        | Clean prompt → target                                                                  | Corrupted prompt                                                          |
+| ----------------- | ------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Translation       | Choosing the target language                | Translate to French: Thank you. → `Merci`                                              | Translate to Spanish: Thank you.                                          |
+| Translation       | Word sense from context                     | He sat by the river bank. French: la → `rive`                                          | He went to the city bank. French: la                                      |
+| De-identification | Entity type (person vs place)               | Sarah lives in Cairo. Cairo is a → `city`                                              | Sarah lives in Cairo. Sarah is a                                          |
+| Classification    | Sentiment label                             | Review: The food was wonderful. Sentiment: → `positive`                                | Review: The food was terrible. Sentiment:                                 |
+| RAG / document QA | Answering from the context, not from memory | Context: The meeting is on Tuesday. Question: When is the meeting? Answer: → `Tuesday` | Context: The meeting is on Friday. Question: When is the meeting? Answer: |
+| Code              | Variable binding                            | `a, b = 3, 7; print(a) # prints` → `3`                                                 | `a, b = 3, 7; print(b) # prints`                                          |
+| Structured output | Closing the right bracket                   | `values = [1, 2, 3` → `]`                                                              | `values = (1, 2, 3`                                                       |
+| Arabic            | Factual recall in another language          | عاصمة مصر هي → `القاهرة`                                                               | عاصمة فرنسا هي                                                            |
+
+
+These rows are illustrative and have not been run. Only IOI, SVA, factual, greater-than and arithmetic were tested (§4). Token lengths were not checked against a tokenizer, so verify each pair on your model: the loader drops pairs whose clean and corrupted prompts differ in length. If an answer spans several tokens, as the Arabic one probably does, use its first token as the target. One example per row is shown; a real concept needs dozens of pairs (60 were used here) plus a held-out set.
+
+### Attribution: Integrated Gradients on Xd
+
+For each pair, the model runs once on the corrupted prompt and once on the clean one, and the hook records Xd at every layer. Then it runs four more forward and backward passes on the corrupted prompt. In each pass, every layer's Xd is replaced by a point on the straight line from the corrupted activation to the clean one. The loss is the cross-entropy of the clean target token.
 
 ```
 x_α         = x_corr + α · (x_clean − x_corr),    α ∈ {¼, ½, ¾, 1}
@@ -80,13 +99,15 @@ Unless noted otherwise: Llama-3.2-1B, fp16, β = 2, concept accuracy on 60 held-
 
 ### The core effect at 40% pruning
 
-| Metric | Dense | Magnitude | Concept-aware |
-|---|---|---|---|
-| **Lambada perplexity** | 5.62 | 88.52 | **28.39** |
-| **Lambada accuracy** | 0.635 | 0.300 | **0.445** |
-| **IOI (held-out)** | 0.750 | 0.200 | **0.983** |
-| **SVA (held-out)** | 0.600 | 0.450 | **0.533** |
-| **Factual (held-out)** | 0.817 | 0.000 | **0.567** |
+
+| Metric                 | Dense | Magnitude | Concept-aware |
+| ---------------------- | ----- | --------- | ------------- |
+| **Lambada perplexity** | 5.62  | 88.52     | **28.39**     |
+| **Lambada accuracy**   | 0.635 | 0.300     | **0.445**     |
+| **IOI (held-out)**     | 0.750 | 0.200     | **0.983**     |
+| **SVA (held-out)**     | 0.600 | 0.450     | **0.533**     |
+| **Factual (held-out)** | 0.817 | 0.000     | **0.567**     |
+
 
 Both pruned models have 913.8M of the original 1,235.8M parameters. All metrics are on held-out data unvisited during attribution.
 
@@ -94,13 +115,15 @@ Both pruned models have 913.8M of the original 1,235.8M parameters. All metrics 
 
 ![Lambada perplexity by share of MLP neurons removed from 20% to 60%]({{ '/assets/images/concept-pruning/sweep.png' | prepend: site.baseurl }})
 
-| Pruned | Magnitude PPL | β = 2 PPL | β = 4 PPL |
-|---|---|---|---|
-| **20%** | 30.78 | **9.90** | 10.10 |
-| **30%** | 58.74 | **17.40** | 17.73 |
-| **40%** | 88.52 | **28.09** | 34.19 |
-| **50%** | 388.84 | **91.70** | 95.78 |
-| **60%** | 2634.41 | 627.68 | **579.31** |
+
+| Pruned  | Magnitude PPL | β = 2 PPL | β = 4 PPL  |
+| ------- | ------------- | --------- | ---------- |
+| **20%** | 30.78         | **9.90**  | 10.10      |
+| **30%** | 58.74         | **17.40** | 17.73      |
+| **40%** | 88.52         | **28.09** | 34.19      |
+| **50%** | 388.84        | **91.70** | 95.78      |
+| **60%** | 2634.41       | 627.68    | **579.31** |
+
 
 β = 2 beats magnitude pruning on every metric at every ratio from 20% to 60%.
 
@@ -108,23 +131,29 @@ Both pruned models have 913.8M of the original 1,235.8M parameters. All metrics 
 
 On Qwen2.5-1.5B at 40%, magnitude pruning is far more destructive than on Llama (Lambada perplexity 937 vs dense 6.1). Concept-aware cuts that to 243 and keeps IOI, greater-than, and factual recall well above the baseline. The effect is even larger here than on Llama.
 
-| Metric | Dense | Magnitude | Concept-aware |
-|---|---|---|---|
-| **Lambada PPL** | 6.13 | 937.46 | **242.6** |
-| **IOI** | 0.417 | 0.250 | **0.433** |
-| **Greater-than** | 1.000 | 0.000 | **1.000** |
-| **Factual** | 0.917 | 0.000 | **0.350** |
-| **SVA** | 0.833 | 0.783 | 0.750 |
+
+| Metric           | Dense | Magnitude | Concept-aware |
+| ---------------- | ----- | --------- | ------------- |
+| **Lambada PPL**  | 6.13  | 937.46    | **242.6**     |
+| **IOI**          | 0.417 | 0.250     | **0.433**     |
+| **Greater-than** | 1.000 | 0.000     | **1.000**     |
+| **Factual**      | 0.917 | 0.000     | **0.350**     |
+| **SVA**          | 0.833 | 0.783     | 0.750         |
+
+
+
 
 ### How many concepts to protect
 
-| Protected | Lambada PPL | ARC-Easy | IOI | SVA | Factual |
-|---|---|---|---|---|---|
-| **none (magnitude)** | 88.52 | 0.400 | 0.133 | 0.500 | 0.000 |
-| **IOI** | 24.19 | 0.440 | 1.000 | 0.700 | 0.233 |
-| **IOI + SVA** | **24.03** | **0.440** | 1.000 | 0.733 | **0.733** |
-| **+ factual** | 29.65 | 0.415 | 1.000 | 0.833 | 0.717 |
-| **+ arithmetic** | 29.55 | 0.420 | 1.000 | 0.833 | 0.717 |
+
+| Protected            | Lambada PPL | ARC-Easy  | IOI   | SVA   | Factual   |
+| -------------------- | ----------- | --------- | ----- | ----- | --------- |
+| **none (magnitude)** | 88.52       | 0.400     | 0.133 | 0.500 | 0.000     |
+| **IOI**              | 24.19       | 0.440     | 1.000 | 0.700 | 0.233     |
+| **IOI + SVA**        | **24.03**   | **0.440** | 1.000 | 0.733 | **0.733** |
+| **+ factual**        | 29.65       | 0.415     | 1.000 | 0.833 | 0.717     |
+| **+ arithmetic**     | 29.55       | 0.420     | 1.000 | 0.833 | 0.717     |
+
 
 Protection spreads to concepts you didn't probe: factual recall jumped when I added SVA, not when I added factual itself. Adding a third concept cost about 23% in perplexity. Two concepts (IOI + SVA) was the best trade-off here.
 
@@ -132,60 +161,44 @@ Protection spreads to concepts you didn't probe: factual recall jumped when I ad
 
 Pruned models are usually fine-tuned afterwards to recover. I used the distillation recipe from *Rearchitecting LLMs* on Qwen3-0.6B at 10% pruning:
 
-| Metric | Magnitude pre → post | Concept-aware pre → post |
-|---|---|---|
-| **ARC-Easy (n ≈ 2376)** | 0.486 → 0.535 | **0.563 → 0.593** |
-| **HellaSwag** | 0.420 → 0.430 | **0.450 → 0.480** |
-| **Lambada acc** | 0.140 → 0.300 | **0.230 → 0.360** |
-| **SVA** | 0.333 → 0.367 | **0.883 → 0.717** |
-| **Factual** | 0.000 → 0.167 | **0.567 → 0.633** |
+
+| Metric                  | Magnitude pre → post | Concept-aware pre → post |
+| ----------------------- | -------------------- | ------------------------ |
+| **ARC-Easy (n ≈ 2376)** | 0.486 → 0.535        | **0.563 → 0.593**        |
+| **HellaSwag**           | 0.420 → 0.430        | **0.450 → 0.480**        |
+| **Lambada acc**         | 0.140 → 0.300        | **0.230 → 0.360**        |
+| **SVA**                 | 0.333 → 0.367        | **0.883 → 0.717**        |
+| **Factual**             | 0.000 → 0.167        | **0.567 → 0.633**        |
+
 
 On ARC-Easy at full size (about 2,400 questions), concept-aware won before and after recovery with non-overlapping 95% confidence intervals. Recovery narrows the general-benchmark gap, but the concept gap survives: generic recovery data doesn't rebuild a capability that pruning removed entirely.
 
-### Against a stronger baseline: CH05 NB02
-
-The second notebook of Chapter 5 in *Rearchitecting LLMs* introduces a stronger data-driven method (NB02) that multiplies a weight score by the L2 norm of activations over calibration texts (WikiText-2 or SMS Spam). It reads the same hook point as my attribution, making it the natural competitor:
-
-![At 40% pruning, NB02 calibrated on WikiText has the lowest held-out WikiText perplexity, while concept-aware has the lowest Lambada perplexity and highest accuracy]({{ '/assets/images/concept-pruning/nb02.png' | prepend: site.baseurl }})
-
-| 40% pruning | WikiText ppl | SMS ppl | Lambada ppl | Lambada acc | PIQA | IOI | SVA | Factual |
-|---|---|---|---|---|---|---|---|---|
-| **Magnitude (NB01)** | 141.7 | 773.8 | 88.5 | 0.300 | 0.625 | 0.25 | 0.38 | 0.00 |
-| **NB02, WikiText calib** | **96.2** | 547.3 | 47.5 | 0.315 | 0.605 | 0.65 | 0.75 | 0.42 |
-| **NB02, SMS calib** | 124.1 | **493.0** | 52.4 | 0.325 | 0.600 | 0.20 | 0.58 | 0.40 |
-| **Concept-aware** | 116.4 | 621.0 | **24.0** | **0.460** | **0.670** | **1.00** | 0.77 | **0.80** |
-| **NB02 (wiki) + concept** | 117.6 | 609.7 | 45.1 | 0.355 | 0.580 | 0.95 | **0.82** | 0.35 |
-
-What this shows:
-- **NB02 is a much stronger baseline than magnitude pruning.** It roughly halves Lambada perplexity at both 20% and 40%.
-- **NB02's domain specialization replicates.** Each NB02 model has the lowest perplexity on its own calibration domain on held-out text. Concept-aware doesn't beat it there.
-- **Concept-aware still wins overall.** Lambada perplexity is half of NB02's (24.0 vs 47.5), Lambada accuracy is 14 points higher, and it keeps far more of the protected capabilities.
-
-## Where it doesn't help: depth pruning
-
-Chapter 4 of the book removes whole decoder blocks, ranked by Block Importance (how little a block changes its input). I tried concept-aware block selection on Qwen3-0.6B, removing 3 of 28 blocks.
-
-Scoring what each block adds (output minus input) produced a genuinely different signal, but it only tied Block Importance: slightly better on WikiText and SMS perplexity, worse on Lambada, and worse on its own concept probes.
-
-The reason is what the attribution measures: it asks how much swapping one activation from corrupted to clean changes the answer. That matches removing one neuron out of 8,192. It doesn't match deleting three whole blocks and leaving the residual stream to absorb the change.
-
-## What this doesn't prove
-
-I want to be upfront about the limits here, because it's easy for clean numbers to overstate certainty:
-
-- **Small models only.** Everything tested here is 0.6B to 1.5B parameters.
-- **Single run, no significance testing.** The only formal confidence intervals are from the ARC-Easy full-set check.
-- **Templated probes.** The concepts are short next-token tasks. Two others I tried (greater-than and simple arithmetic) were too easy on Llama-3.2-1B to tell any method apart.
-- **One recovery recipe.** It transfers poorly to Llama-3.2-1B, so the recovery conclusions are strongest on Qwen3-0.6B.
-
-What I think this *does* show: scoring neurons by capability rather than raw magnitude or general activation prevents catastrophic capability collapse under aggressive pruning budgets.
-
-## What's next
-
-- A better way to combine NB02 and concept scores, such as blending ranks or multiplying NB02's score by `(1 + β · coverage)`, to get NB02's domain perplexity and concept-aware's capability retention in one model.
-- Evaluating on the full benchmark suite from Chapter 5, including IFEval to test whether width pruning can improve instruction following.
-- Speed and energy throughput measurements for the pruned models on edge hardware.
-
----
+## The package
 
 *Code and reproduction scripts are available in the repository at [github.com/oraby8/concept-aware-pruning](https://github.com/oraby8/concept-aware-pruning).*
+
+```
+concept-prune run \
+  --model unsloth/Llama-3.2-1B \
+  --concepts examples/concepts_ioi_sva.yaml \
+  --holdout-concepts examples/concepts_ioi_sva_holdout.yaml \
+  --compression 0.4 --beta 2.0 \
+  --benchmarks lambada_openai,arc_easy,piqa --limit 200 \
+  --output results.json
+```
+
+```
+# Python API
+from concept_prune import load_model, find_decoder_layers
+from concept_prune.concepts import concepts_from_templates
+from concept_prune.examples_templates import generate_ioi, generate_sva
+from concept_prune.attribution import compute_concept_importance, combine_concepts
+from concept_prune.pruning import prune_model
+
+model, tok = load_model("unsloth/Llama-3.2-1B")
+layers     = find_decoder_layers(model)
+concepts   = concepts_from_templates(tok, {"ioi": generate_ioi, "sva": generate_sva}, n_per_concept=60)
+coverage   = combine_concepts({n: compute_concept_importance(model, p, layers=layers) for n, p in concepts.items()})
+pruned     = prune_model(model, 0.4, coverage_by_layer=coverage, beta=2.0)
+```
+
