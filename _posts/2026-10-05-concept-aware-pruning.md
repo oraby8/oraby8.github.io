@@ -9,8 +9,6 @@ tags: [LLM, Pruning, Model Compression, Interpretability, PyTorch]
 excerpt: "Standard LLM pruning drops neurons by weight magnitude or activation size without knowing what a neuron actually does. I tested scoring neurons by whether they carry specific capabilities instead — protecting concept circuits before pruning."
 ---
 
-![Lambada perplexity after pruning 40% of MLP width on Llama-3.2-1B: magnitude 88.5, NB02 hybrid 47.5, concept-aware 24.0, dense 5.62]({{ '/assets/images/concept-pruning/overview.png' | prepend: site.baseurl }})
-
 ## The question
 
 Width pruning removes neurons from a model's MLP blocks to make it smaller and faster. The usual question is *which* neurons to remove, and the usual answers don't know anything about what a neuron does. Magnitude pruning keeps the neurons with the largest weights. Data-driven pruning keeps the ones that fire hardest on some calibration text.
