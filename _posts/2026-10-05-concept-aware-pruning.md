@@ -171,6 +171,25 @@ Pruned models are usually fine-tuned afterwards to recover. I used the distillat
 
 On ARC-Easy at full size (about 2,400 questions), concept-aware won before and after recovery with non-overlapping 95% confidence intervals. Recovery narrows the general-benchmark gap, but the concept gap survives: generic recovery data doesn't rebuild a capability that pruning removed entirely.
 
+### Against the hybrid weights + activations baseline, across seeds
+
+The strongest baseline in Chapter 5 of *Rearchitecting LLMs* is the hybrid score, which multiplies a structural weight-range score by each neuron's L2 activation norm on calibration text. It does use activations, so it's the fair comparison. I reproduced it exactly as the book describes (WikiText-2 `train[:100]`, padded to 1024 tokens) and pruned Llama-3.2-1B by 40% with all methods, repeating the run over 5 seeds. A seed redraws the concept probes and the held-out probes. Mean ± std:
+
+
+| Metric                 | Magnitude | Hybrid (book calibration) | Hybrid (random calibration) | Concept-aware     |
+| ---------------------- | --------- | ------------------------- | --------------------------- | ----------------- |
+| **Lambada perplexity** | 88.5      | 47.4                      | 36.9 ± 1.8                  | **25.4 ± 1.2**    |
+| **Lambada accuracy**   | 0.300     | 0.315                     | 0.354 ± 0.012               | **0.455 ± 0.012** |
+| **Wikitext perplexity** | 141.7    | **96.2**                  | 81.2 ± 1.0                  | 120.7 ± 2.8       |
+| **IOI (held-out)**     | 0.17      | 0.59 ± 0.06               | 0.81 ± 0.09                 | **1.00 ± 0.00**   |
+| **SVA (held-out)**     | 0.51      | **0.82 ± 0.06**          | 0.60 ± 0.04                 | 0.79 ± 0.08       |
+| **Factual (held-out)** | 0.00      | **0.41 ± 0.07**          | 0.14 ± 0.04                 | 0.37 ± 0.23       |
+
+
+Concept-aware had the lowest Lambada perplexity in every seed, and its worst seed (27.1) is still well ahead of the hybrid's 47.4. The hybrid with the book's fixed calibration has no randomness, so it gives the same model every seed. The random-calibration column draws 100 WikiText rows with more than 40 words per seed. That helps the hybrid (36.9), but it changes two things at once, the sampling and the filter, so I wouldn't read it as pure seed sensitivity. Concept-aware still wins against it.
+
+The hybrid keeps its own advantage: it is calibrated on WikiText, so it wins on WikiText perplexity. Factual recall is the weak spot for concept-aware here, because it swings from 0.03 to 0.65 across seeds. I protected IOI and SVA, not factual, so that score isn't something I'd claim. Lambada was evaluated on 200 examples per run (about ±3.5 points on accuracy), and this is one model, so treat the gaps as a strong signal on one setup, not a general result.
+
 ## The package
 
 *Code and reproduction scripts are available in the repository at [github.com/oraby8/concept-aware-pruning](https://github.com/oraby8/concept-aware-pruning).*
