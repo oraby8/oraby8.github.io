@@ -15,7 +15,7 @@ Width pruning removes neurons from a model's MLP blocks to make it smaller and f
 
 I wanted to know whether we get a better pruned model at the same size if we first find the neurons that matter for specific capabilities ("concepts") and protect them. I wanted to check whether that advantage holds on data the scoring never saw, on a different architecture, after recovery fine-tuning, and against stronger data-driven baselines.
 
-The idea comes from [How Do Large Language Models Learn Concepts During Continual Pre-Training?](https://arxiv.org/abs/2601.03570) (Yao et al.), which studies "concept circuits" inside LLMs during training. That paper doesn't discuss pruning — using concept circuits to guide structured pruning is my own extension. The baselines and evaluation protocol come from Chapter 5 of Pere Martra's *Rearchitecting LLMs*.
+The idea comes from [How Do Large Language Models Learn Concepts During Continual Pre-Training?](https://arxiv.org/abs/2601.03570) (Yao et al.), which studies "concept circuits" inside LLMs during training. That paper doesn't discuss pruning — using concept circuits to guide structured pruning is my own extension. The baselines and evaluation protocol come from Chapter 5 of Pere Martra's [*Rearchitecting LLMs*](https://www.manning.com/books/rearchitecting-llms).
 
 ## How it works
 
