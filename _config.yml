@@ -31,6 +31,9 @@ future: true
 inter_post_navigation: false
 highlightjs_theme: "monokai-sublime"
 
+# Analytics (GoatCounter - privacy-friendly, lightweight, no cookies)
+goatcounter_code: "oraby8"
+
 # Pagination Settings
 paginate: 5
 paginate_path: "/page:num/"
