@@ -194,10 +194,11 @@ So I ran a compute-matched control: each from-scratch model retrained with its t
 | MorphBPE vs BPE | −1.0% bits per character, 22/22 sets | **+1.8% (worse), 0/22 sets** |
 | Unigram + constraint vs Unigram | −4.5%, 22/22 sets | **−0.6% to −1.1%, 17–18/22 sets** |
 
-- **MorphBPE's gain was entirely extra compute.** At the same compute, it is worse than plain BPE on every test set.
 - **Unigram + constraint keeps a small real advantage,** about 1% at the same compute. That small gain costs 64% more tokens per word at inference.
 - **Plain Unigram beat plain BPE** (−2.5% at roughly equal compute, since both produce almost the same number of tokens). It needs no morphology data at all.
 - **A good tokenizer transplant matches continued training with fewer tokens.** Qwen3-0.6B with the plain Unigram tokenizer reached about the same bits per character (1.74 MSA, 2.21 dialects) as the same model trained on the same data with its own tokenizer (1.75, 2.19). The transplant needed 238M training tokens; the model with its own tokenizer needed 403M.
+
+**What this means for MorphBPE.** My results only partly replicate MorphBPE. The constraint improves morphological alignment and lowers bits per character at equal training text. But it costs 30–34% more tokens, far more than the "slight" increase the paper reports. Part of that gap may be granularity: the paper's segmenter (Farasa) splits mainly clitics, and my clitic-only version costs +22%. At equal compute the gain disappears: MorphBPE is 1.8% worse than BPE on all 22 test sets. At this scale (135M parameters, 1B characters), the benefit looks like extra optimizer steps rather than better morphology. Larger-scale, compute-matched tests are needed.
 
 **Benchmarks barely move at this scale.**
 
